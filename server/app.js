@@ -78,6 +78,24 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 app.post('/login', (req, res, next) => {
+  return models.Users.get({username: req.body.username})
+    .then(result => {
+      if (result) {
+        return models.Users.compare({ attempted: req.body.password, password: result.password, salt: result.salt});
+      }
+    })
+    .then(results => {
+      models.Sessions.isLogedIn(session);
+    })
+    .then(() => {
+      res.redirect('/');
+    })
+    .error(error => {
+      res.status(500).send(error);
+    })
+    .catch(user => {
+      res.redirect('/login');
+    });
 
 });
 
@@ -102,6 +120,8 @@ app.post('/signup', (req, res, next) => {
       res.redirect('/signup');
     });
 });
+
+
 
 
 /************************************************************/
