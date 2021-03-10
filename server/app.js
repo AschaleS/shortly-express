@@ -79,24 +79,20 @@ app.post('/links',
 /************************************************************/
 app.post('/login', (req, res, next) => {
   return models.Users.get({username: req.body.username})
-    .then(result => {
-      if (result) {
-        return models.Users.compare({ attempted: req.body.password, password: result.password, salt: result.salt});
-      }
-    })
     .then(results => {
-      models.Sessions.isLogedIn(session);
-    })
-    .then(() => {
-      res.redirect('/');
-    })
-    .error(error => {
-      res.status(500).send(error);
-    })
-    .catch(user => {
-      res.redirect('/login');
+      if (results) {
+        let attempted = req.body.password;
+        let password = results.password;
+        let salt = results.salt;
+        if (models.Users.compare(attempted, password, salt)) {
+          res.status(200).redirect('/');
+        } else {
+          res.status(400).redirect('/login');
+        }
+      } else {
+        res.status(500).redirect('/login');
+      }
     });
-
 });
 
 app.post('/signup', (req, res, next) => {
@@ -105,16 +101,19 @@ app.post('/signup', (req, res, next) => {
       if (user) {
         throw user;
       }
-      return modles.Users.create({ username: req.body.username, password: req.body.password });
+      return models.Users.create({ username: req.body.username, password: req.body.password });
+    })
+    .then(() => {
+      res.status(200).redirect('/');
     })
     .then(results => {
       models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
     })
-    .then(() => {
-      res.redirect('/');
-    })
     .error(error => {
       res.status(500).send(error);
+    })
+    .then(() => {
+      res.redirect('/');
     })
     .catch(user => {
       res.redirect('/signup');
