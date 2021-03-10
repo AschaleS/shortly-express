@@ -77,11 +77,11 @@ app.post('/links',
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-app.post('/login', (req, res, next) => {
-  return models.Users.get({username: req.body.username})
+app.post('/login', (req, res, callback) => {
+  return models.Users.get({username: req.body.username}) // () => {GetP/U.slice(0,1);}
     .then(results => {
       if (results) {
-        let attempted = req.body.password;
+        let attempted = req.body.password; // GetP/U.slice(0,1);
         let password = results.password;
         let salt = results.salt;
         if (models.Users.compare(attempted, password, salt)) {
