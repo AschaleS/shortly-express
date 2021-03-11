@@ -77,7 +77,7 @@ app.post('/links',
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-app.post('/login', (req, res, callback) => {
+app.post('/login', (req, res, next) => {
   return models.Users.get({username: req.body.username}) // () => {GetP/U.slice(0,1);}
     .then(results => {
       if (results) {
@@ -93,6 +93,7 @@ app.post('/login', (req, res, callback) => {
         res.status(500).redirect('/login');
       }
     });
+  next();
 });
 
 app.post('/signup', (req, res, next) => {
@@ -118,6 +119,7 @@ app.post('/signup', (req, res, next) => {
     .catch(user => {
       res.redirect('/signup');
     });
+  next();
 });
 
 

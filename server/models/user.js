@@ -47,4 +47,6 @@ class Users extends Model {
   }
 }
 
+// CREATE CALLBACKS!!! getPasswordUsername
+
 module.exports = new Users();
