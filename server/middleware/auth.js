@@ -1,6 +1,5 @@
 const models = require('../models');
 const Promise = require('bluebird');
-// const parsedCookie = require('./middleware');
 
 module.exports.createSession = (req, res, next) => {
   if (!req.cookies.shortlyid) {
