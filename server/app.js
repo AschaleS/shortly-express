@@ -3,9 +3,11 @@ const path = require('path');
 const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
-const Auth = require('./middleware/auth');
+const auth = require('./middleware/auth');
 const models = require('./models');
 const cookieParser = require('./middleware/cookieParser');
+
+
 
 const app = express();
 
@@ -15,8 +17,8 @@ app.use(partials());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
-app.use(cookieParser());
-app.use(Auth());
+app.use(cookieParser);
+app.use(auth.createSession);
 
 
 
@@ -41,6 +43,14 @@ app.get('/links',
         res.status(500).send(error);
       });
   });
+
+app.get('/signup', (req, res) => {
+  res.render('signup');
+});
+
+app.get('/login', (req, res) => {
+  res.render('login');
+});
 
 app.post('/links',
   (req, res, next) => {
@@ -82,10 +92,10 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 app.post('/login', (req, res, next) => {
-  return models.Users.get({username: req.body.username}) // () => {GetP/U.slice(0,1);}
+  return models.Users.get({username: req.body.username})
     .then(results => {
       if (results) {
-        let attempted = req.body.password; // GetP/U.slice(0,1);
+        let attempted = req.body.password;
         let password = results.password;
         let salt = results.salt;
         if (models.Users.compare(attempted, password, salt)) {
