@@ -21,27 +21,38 @@ app.use(cookieParser);
 app.use(auth.createSession);
 
 
+const verifySession = function (req, res, next) {
+  if (req.session.userId) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+};
+module.exports = verifySession;
+
 
 
 app.get('/',
   (req, res) => {
-    res.render('index');
+    verifySession.call(this, req, res, () => res.render('index'));
   });
 
 app.get('/create',
   (req, res) => {
-    res.render('index');
+    verifySession.call(this, req, res, () => res.render('index'));
   });
 
 app.get('/links',
   (req, res, next) => {
-    models.Links.getAll()
-      .then(links => {
-        res.status(200).send(links);
-      })
-      .error(error => {
-        res.status(500).send(error);
-      });
+    verifySession.call(this, req, res, () => {
+      models.Links.getAll()
+        .then(links => {
+          res.status(200).send(links);
+        })
+        .error(error => {
+          res.status(500).send(error);
+        });
+    });
   });
 
 app.get('/signup', (req, res) => {
@@ -52,6 +63,18 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
+app.get('/logout',
+  (req, res, next) => {
+    verifySession.call(this, req, res, () => {
+      models.Sessions.delete({ hash: req.session.hash })
+        .then(() => {
+          // res.cookie('shortlyid', null);
+          req.session.userId = null;
+          res.redirect('/login');
+        });
+    });
+  });
+
 app.post('/links',
   (req, res, next) => {
     var url = req.body.url;
@@ -59,7 +82,6 @@ app.post('/links',
       // send back a 404 if link is not valid
       return res.sendStatus(404);
     }
-
     return models.Links.get({ url })
       .then(link => {
         if (link) {
@@ -88,52 +110,52 @@ app.post('/links',
       });
   });
 
+
+
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
 app.post('/login', (req, res, next) => {
-  return models.Users.get({username: req.body.username})
-    .then(results => {
-      if (results) {
-        let attempted = req.body.password;
-        let password = results.password;
-        let salt = results.salt;
-        if (models.Users.compare(attempted, password, salt)) {
-          res.status(200).redirect('/');
+  var username = req.body.username;
+  var password = req.body.password;
+  models.Users.get({ username })
+    .then(result => {
+      if (result) {
+        if (models.Users.compare(password, result.password, result.salt)) {
+          models.Sessions.update({ hash: req.session.hash }, { userId: result.id })
+            .then((result) => {
+              req.session.userId = result.insertId;
+              req.session.user = { username };
+              res.redirect('/');
+            });
         } else {
-          res.status(400).redirect('/login');
+          res.redirect('/login');
         }
       } else {
-        res.status(500).redirect('/login');
+        res.redirect('/login');
       }
     });
-  next();
 });
 
+
 app.post('/signup', (req, res, next) => {
-  return models.Users.get({ username: req.body.username })
+  var username = req.body.username;
+  models.Users.get({ username })
     .then(user => {
       if (user) {
-        throw user;
+        res.redirect('/signup');
+      } else {
+        models.Users.create(req.body)
+          .then((result) => {
+            return models.Sessions.update({ hash: req.session.hash }, { userId: result.insertId });
+          })
+          .then((result) => {
+            req.session.userId = result.insertId;
+            req.session.user = { username: req.body.username };
+            res.redirect('/');
+          });
       }
-      return models.Users.create({ username: req.body.username, password: req.body.password });
-    })
-    .then(() => {
-      res.status(200).redirect('/');
-    })
-    .then(results => {
-      models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
-    })
-    .error(error => {
-      res.status(500).send(error);
-    })
-    .then(() => {
-      res.redirect('/');
-    })
-    .catch(user => {
-      res.redirect('/signup');
     });
-  next();
 });
 
 
